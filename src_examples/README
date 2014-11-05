@@ -1,0 +1,25 @@
+This set of files/packages needs to be copied over into a jpf-symb project. 
+
+under src_examples copied to src/examples in jpf-symbc
+	this folder contains the case study code of the calc MVC with some minor 
+	modification to allow jpf to run on it. the packages are all prefixed with calc.*
+	
+	There is a testCase package that has some other code that could be run but is 
+	not necessary.
+	
+	the .jpf files are the ones that are used to run JPF the most important one is
+	CalcPathTest.jpf it runs the case study and can be run from the top of the MVC
+	or from the equals method uncomment the right line. 
+	
+The src_main needs to be copied to the src/main of the jpf-symbc
+	the packages bfsNode, codeExample, data_obj, graph, and jimpleParser are all from 
+	the BFS_thesis_alg project but it did not like being include externally. you will 
+	also need the bcel.jar.
+	
+	the gov.nasa.jpf.symbc contains the listener code. 
+	BFSSymbolicListener.java is a modified version of the SymbolicListener provide by
+	jpf. It does the bulk of the calculation and work with the call graph. 
+	The other two listeners inherit from this one and change some parameter 
+	like the starting and ending method. there is probably a better way to do this but
+	I haven't figured it out. 
+	
