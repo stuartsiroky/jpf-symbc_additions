@@ -86,14 +86,14 @@ public class CalculatorView extends JFrameView {
 	public void modelChanged(ModelEvent event) {
 		String msg = event.getAmount() + "";
 		textField.setText(msg);
-		System.out.println("modeChanged::msg = "+msg);
+		//System.out.println("modeChanged::msg = "+msg);
 	}
 
 	// Inner classes for Event Handling
 	public class Handler implements ActionListener {
 		// Event handling is handled locally
 		public void actionPerformed(ActionEvent e) {
-		vv3();
+//		vv3();
 			if(fake_state == 1){
 				ModelEvent me = new ModelEvent(this, 101, "invalid path", -101);
 				modelChanged(me);
@@ -118,6 +118,7 @@ public class CalculatorView extends JFrameView {
 	}
 	static void start ( int a, int b) {
 		CalculatorView calc = cv;
+		//equals(calc);
 		if(a > b){
 			fake_state = 0;
 			addition(calc,a,b);	
@@ -129,14 +130,14 @@ public class CalculatorView extends JFrameView {
 			ActionEvent e = new ActionEvent(calc, 101, "101");
 			calc.handler.actionPerformed(e);
 		} 
-		vv6();
+//		vv6();
 		equals(calc);
 		if (a == 1) {
 			hello(calc);
 		} else if (b == 1) {
 			boo(calc);
 		} else {
-			vv0();
+//			vv0();
 		}
 	}
 	static void start_equals() {
@@ -183,7 +184,7 @@ public class CalculatorView extends JFrameView {
 		pickButton(calc,3);
 		pickButton(calc,4);
 		calc.helloButton.pushed();
-		vv3();
+//		vv3();
 	}
 
 	static void boo(CalculatorView calc){
@@ -192,16 +193,16 @@ public class CalculatorView extends JFrameView {
 		pickButton(calc,8);
 		calc.booButton.pushed();
 	}	
-	private static void vv0() {vv1();}
-	private static void vv1() {vv2();}
-	private static void vv2() {vv3();}
-	private static void vv3() {vv4();}
-	private static void vv4() {vv5();}
-	private static void vv5() {vv6();}
-	private static void vv6() {vv7();}
-	private static void vv7() {vv8();}
-	private static void vv8() {vv9();}
-	private static void vv9() {}
+//	private static void vv0() {vv1();}
+//	private static void vv1() {vv2();}
+//	private static void vv2() {vv3();}
+//	private static void vv3() {vv4();}
+//	private static void vv4() {vv5();}
+//	private static void vv5() {vv6();}
+//	private static void vv6() {vv7();}
+//	private static void vv7() {vv8();}
+//	private static void vv8() {vv9();}
+//	private static void vv9() {}
 
 
 }

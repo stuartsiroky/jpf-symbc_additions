@@ -21,11 +21,13 @@ import gov.nasa.jpf.Config;
 import gov.nasa.jpf.JPF;
 import gov.nasa.jpf.PropertyListenerAdapter;
 import gov.nasa.jpf.vm.ChoiceGenerator;
+import gov.nasa.jpf.vm.ChoicePoint;
 import gov.nasa.jpf.vm.ClassInfo;
 import gov.nasa.jpf.vm.Instruction;
 import gov.nasa.jpf.vm.LocalVarInfo;
 import gov.nasa.jpf.vm.MethodInfo;
 import gov.nasa.jpf.vm.StackFrame;
+import gov.nasa.jpf.vm.SystemState;
 import gov.nasa.jpf.vm.ThreadInfo;
 import gov.nasa.jpf.vm.Types;
 import gov.nasa.jpf.vm.VM;
@@ -85,9 +87,17 @@ public class BSFSymbolicListener extends PropertyListenerAdapter implements
 	 * order to turn off state matching during symbolic execution no longer
 	 * necessary because we run spf stateless
 	 */
-
+	  // set if we replay a trace
+	  ChoicePoint trace;
+	  // start the search when reaching the end of the stored trace. If not set,
+	  // the listener will just randomly select single choices once the trace
+	  // got processed
+	  boolean searchAfterTrace;
+	  boolean singleChoice = true;
+	  
 	Stack<BFSNode> MethodCallStack = new Stack<BFSNode>();// added
 	BFSNode CalleeMethod;// added
+	String currMethodName;
 	BFSGraph Bgraph = new BFSGraph(); // added
 	BFSGraph GMgraph = new BFSGraph();
 	boolean useGM = false;
@@ -113,6 +123,12 @@ public class BSFSymbolicListener extends PropertyListenerAdapter implements
 		startNodeName = "testCase.InfeasablePath.start(I)V";
 		finalNodeName = "testCase.InfeasablePath.foo_bar()V";
 		searchPrefix = "testCase";
+		
+	    VM vm = jpf.getVM();
+	    Search s = jpf.getSearch();
+	   
+	    //trace = ChoicePoint.readTrace(conf.getString("choice.use_trace"), vm.getSUTName());
+	
 	}
 
 	@Override
@@ -178,6 +194,8 @@ public class BSFSymbolicListener extends PropertyListenerAdapter implements
 				int numberOfArgs = md.getArgumentValues(ti).length;
 
 				MethodInfo mi = md.getInvokedMethod();
+				currMethodName = mi.getFullName();
+				continue_path(vm);
 				if (mi.getFullName().contains(searchPrefix)) {
 					createBFS(mi);
 				}
@@ -428,6 +446,7 @@ public class BSFSymbolicListener extends PropertyListenerAdapter implements
 									returnString);
 							MethodSummary methodSummary = allSummaries
 									.get(longName);
+							@SuppressWarnings("rawtypes")
 							Vector<Pair> pcs = methodSummary
 									.getPathConditions();
 							if ((!pcs.contains(pcPair))
@@ -468,6 +487,7 @@ public class BSFSymbolicListener extends PropertyListenerAdapter implements
 	 * data structure
 	 */
 
+	@SuppressWarnings("rawtypes")
 	private void printMethodSummary(PrintWriter pw, MethodSummary methodSummary) {
 
 		System.out.println("Inputs: " + methodSummary.getSymValues());
@@ -575,6 +595,7 @@ public class BSFSymbolicListener extends PropertyListenerAdapter implements
 	}
 
 	// -------- the publisher interface
+	@SuppressWarnings("rawtypes")
 	@Override
 	public void publishFinished(Publisher publisher) {
 		String[] dp = SymbolicInstructionFactory.dp;
@@ -601,6 +622,9 @@ public class BSFSymbolicListener extends PropertyListenerAdapter implements
 		System.out.println("Total Time     : " + (stopTime - origStartTime));
 	}
 
+	/////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////
+	 
 	public void printMyGraph() {
 
 		BFSNode Start = Bgraph.getNodeMatching(startNodeName);
@@ -628,6 +652,7 @@ public class BSFSymbolicListener extends PropertyListenerAdapter implements
 		}
 	}
 
+	@SuppressWarnings("unused")
 	private String formatName(String s) {
 		// System.out.println("STUART input  "+s);
 		String regex = "\\(\\w";
@@ -722,7 +747,9 @@ public class BSFSymbolicListener extends PropertyListenerAdapter implements
 		stopTime = System.currentTimeMillis();
 		graphReadTime = stopTime - startTime;
 	}
-
+	/////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////
+	
 	protected void readGoldenModelJimple() {
 		if (fileList.length != 0) {
 			JimpleParser JP = new JimpleParser();
@@ -811,10 +838,14 @@ public class BSFSymbolicListener extends PropertyListenerAdapter implements
 		}
 	}
 
+	@SuppressWarnings("unused")
 	private boolean compareGraphs(BFSGraph one, BFSGraph two) {
 		return one.compare(two);
 	}
 
+	/////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////
+	
 	private boolean checkPathConstraints(BFSNode n) {
 		ArrayList<String> gmConst = new ArrayList<String>();
 		gmConst.add("calc.view.CalculatorView.equals(Lcalc/view/CalculatorView;)V");
@@ -860,17 +891,102 @@ public class BSFSymbolicListener extends PropertyListenerAdapter implements
 		return result;
 	}
 
-	public boolean check_continue(String m_name) {
+//	public boolean check_continue(String m_name) {
+//		return true;
+//	}
+	
+	/////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////
+	private void continue_path(VM vm) {
+		SystemState s = vm.getSystemState();
+		Search ss = vm.getSearch();
+		//System.out.println("-----------STUART continue path "+currMethodName+"---------");
+		//s.setIgnored(methodNameIgnore());
+		//s.setBoring(methodNameIgnore());
+		ss.setIgnoredState(methodNameIgnore());
+	}
+
+private boolean methodNameIgnore() {
+	ArrayList<String> s = new ArrayList<String>();
+	s.add("calc.view.CalculatorView.addition(Lcalc/view/CalculatorView;II)V");
+	s.add("calc.model.CalculatorModel.hello()V");
+	s.add("calc.model.CalculatorModel.boo()V");
+	s.add("calc.view.CalculatorView.subtraction(Lcalc/view/CalculatorView;II)V");
+	
+	//s.add("");
+	//s.add("");
+	
+	for(String ss: s) {
+		if(ss.equals(currMethodName)) {
+			return true;
+		}
+	}
+	return false;
+}
+	@Override
+	public boolean check(Search search, VM vm) {
+		System.out.println("-----------STUART check "+currMethodName+"---------");	
 		return true;
 	}
+
+	@Override
+	public void stateProcessed(Search search) {
+		System.out.println("-----------STUART stateProcessed "+currMethodName+"---------");		
+	}
+	@Override
+	public void statePurged(Search search) {
+		System.out.println("-----------STUART statePurged "+currMethodName+"---------");		
+	}
+//	@Override
+//	public void stateRestored(Search search) {
+//		System.out.println("-----------STUART stateRestored "+currMethodName+"---------");		
+//	}
+	@Override
+	public void stateStored(Search search) {
+		System.out.println("-----------STUART stateStored "+currMethodName+"---------");		
+	}
+	@Override
+	public void searchStarted(Search search) {
+		System.out.println("-----------STUART searchStarted "+currMethodName+"---------");		
+	}
+	@Override
+	public void searchFinished(Search search) {
+		System.out.println("-----------STUART searchFinished "+currMethodName+"---------");		
+	}
+	@Override
+	public void searchProbed(Search search) {
+		System.out.println("-----------STUART searchProbed "+currMethodName+"---------");		
+	}
+	@Override
+	  public void stateAdvanced(Search search) {
+		System.out.println("-----------STUART stateAdvance "+currMethodName+"---------");
+		search.setIgnoredState(false);
+
+	  }
+	 @Override
+	  public void stateBacktracked (Search search) {
+		 System.out.println("-----------STUART stateBacktracked "+currMethodName+"---------");  
+	  }
+	  
+	  @Override
+	  public void stateRestored (Search search) {
+		  System.out.println("-----------STUART stateRestored "+currMethodName+"---------"); 
+	  }
+	  	
+	/////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////
 	
 	protected class MethodSummary {
 		private String methodName = "";
 		private String argTypes = "";
 		private String argValues = "";
 		private String symValues = "";
+		@SuppressWarnings("rawtypes")
 		private Vector<Pair> pathConditions;
 
+		@SuppressWarnings("rawtypes")
 		public MethodSummary() {
 			pathConditions = new Vector<Pair>();
 		}
@@ -907,10 +1023,12 @@ public class BSFSymbolicListener extends PropertyListenerAdapter implements
 			return this.symValues;
 		}
 
+		@SuppressWarnings("rawtypes")
 		public void addPathCondition(Pair pc) {
 			pathConditions.add(pc);
 		}
 
+		@SuppressWarnings("rawtypes")
 		public Vector<Pair> getPathConditions() {
 			return this.pathConditions;
 		}
